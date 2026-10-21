@@ -15,9 +15,12 @@
 //!    set, trained from the same list by [`patgen`] (`examples/hyphgen.rs` regenerates both files);
 //! 3. a small syllable **heuristic** for words outside the pattern alphabet.
 //!
+//! Hungarian uses extended Huhyphn patterns with display-letter insertions at selected breaks.
+//!
 //! Then the paragraph's limits ([`Limits`]) are applied.
 
 pub mod dict;
+mod hungarian;
 pub mod patgen;
 pub mod patterns;
 
@@ -72,6 +75,7 @@ impl Default for Limits {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum Lang {
     English,
+    Hungarian,
     Patterns(hypher::Lang),
 }
 
@@ -87,12 +91,29 @@ impl Lang {
         if sub == "en" {
             return Some(Lang::English);
         }
+        if sub == "hu" {
+            return Some(Lang::Hungarian);
+        }
         let b = sub.as_bytes();
         if b.len() != 2 {
             return None;
         }
         hypher::Lang::from_iso([b[0], b[1]]).map(Lang::Patterns)
     }
+}
+
+/// A source-character boundary and letters added only when this break is selected.
+#[derive(Clone, Debug)]
+pub(crate) struct Opportunity {
+    pub at: usize,
+    pub suffix: Box<str>,
+}
+
+pub(crate) fn opportunities_in(word: &str, lim: &Limits, lang: Lang) -> Vec<Opportunity> {
+    if lang == Lang::Hungarian {
+        return hungarian::opportunities(word, lim);
+    }
+    hyphen_points_in(word, lim, lang).into_iter().map(|at| Opportunity { at, suffix: "".into() }).collect()
 }
 
 /// Where a word's break points came from.
@@ -117,6 +138,11 @@ fn core_breaks(core: &[char], lang: Lang) -> (Vec<usize>, Source) {
     let n = core.len();
     if n < 2 {
         return (vec![], Source::None);
+    }
+    if lang == Lang::Hungarian {
+        let s: String = core.iter().collect();
+        let lim = Limits { min_word: 2, after_first: 1, before_last: 1, capitalized: true };
+        return (hungarian::opportunities(&s, &lim).into_iter().map(|p| p.at).collect(), Source::Patterns);
     }
     if let Lang::Patterns(l) = lang {
         if core.contains(&'\'') {
@@ -204,6 +230,9 @@ pub fn hyphen_points(word: &str, lim: &Limits) -> Vec<usize> {
 
 /// [`hyphen_points`] for a language.
 pub fn hyphen_points_in(word: &str, lim: &Limits, lang: Lang) -> Vec<usize> {
+    if lang == Lang::Hungarian {
+        return hungarian::opportunities(word, lim).into_iter().map(|p| p.at).collect();
+    }
     let chars: Vec<char> = word.chars().collect();
     let (pts, _) = word_breaks_in(word, lang);
     if pts.is_empty() {

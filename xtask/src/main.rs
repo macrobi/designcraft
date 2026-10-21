@@ -176,7 +176,13 @@ fn cmd_ci() -> Result<(), String> {
             Box::new(|| {
                 let mut c = cargo();
                 c.args(["test", "--workspace"]);
-                run(c, "cargo test --workspace")
+                run(c, "cargo test --workspace")?;
+                let mut c = cargo();
+                c.args(["test", "--manifest-path", "vendor/spellbook/Cargo.toml", "--test", "hungarian_compatibility"]);
+                run(c, "Hungarian Spellbook compatibility")?;
+                let mut c = cargo();
+                c.args(["test", "--manifest-path", "tools/hu-hyphenation/Cargo.toml"]);
+                run(c, "Hungarian hyphenation generator")
             }),
         ),
         ("assets", Box::new(|| assets::run(&root()))),

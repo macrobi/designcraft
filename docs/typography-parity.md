@@ -1,6 +1,6 @@
 # Typography and composition parity
 
-> **Last reviewed:** 2026-10-10 · **Last updated:** 2026-10-16 · **Change:** minor (Type › Reload Fonts reads fonts installed, edited or removed since start-up (#328, #547); Optical kerning from outlines (#181); macOS lists fonts that font services and managers activate; Justification dialog for the selected paragraphs; anchored objects wrap text; Tabs panel listed as present (#343); character stroke behind fill) · **Target:** Adobe InDesign 2026 (21.6)
+> **Last reviewed:** 2026-10-10 · **Last updated:** 2026-10-21 · **Change:** minor (Type › Reload Fonts reads fonts installed, edited or removed since start-up (#328, #547); Optical kerning from outlines (#181); macOS lists fonts that font services and managers activate; Justification dialog for the selected paragraphs; anchored objects wrap text; Tabs panel listed as present (#343); character stroke behind fill) · **Target:** Adobe InDesign 2026 (21.6)
 
 Typesetting is what InDesign is bought for. A feature can exist and still set text differently
 from InDesign: different line breaks, different page count, overset where InDesign fits. This
@@ -36,7 +36,7 @@ Fidelity: **unmeasured** unless stated.
 | Single-line Composer | greedy | greedy with the same ranges | ✓ | |
 | World-Ready composers | Paragraph / Single-line World-Ready | RTL, Arabic and bidi in the main composer | ~ | Indic scripts (Devanagari etc.) shape through harfrust but are untested |
 | Justification | word/letter spacing, glyph scaling min/desired/max, single-word, last line | all of these | ✓ | a justified line with a tab justifies after the tab (#284); set per paragraph in Type › Justification… and the Paragraph panel menu (#531) |
-| Hyphenation | per-language dictionaries (~40), zone, limits, capitalized, last word, across columns | Liang patterns: English (trained from the public-domain Moby list), Spanish (Bezos), Portuguese (hyph-pt), Norwegian (hyph-no) and Greek (hyph-el-monoton); zone, limits, exceptions in the user dictionary | ~ | other languages don't hyphenate (#87 reported "doesn't work") |
+| Hyphenation | per-language dictionaries (~40), zone, limits, capitalized, last word, across columns | Liang patterns: English (trained from the public-domain Moby list), Spanish (Bezos), Portuguese (hyph-pt), Norwegian (hyph-no) Greek (hyph-el-monoton), and Hungarian extended Huhyphn; zone, limits, exceptions in the user dictionary | ~ | other languages don't hyphenate (#87 reported "doesn't work") |
 | Spelling | per-language dictionaries | English (Moby) + document/user dictionary | ~ | |
 | Kerning | Metrics, Optical, manual, none | Metrics, Optical (outline-based: pairs pulled towards the font's stem gap, `crates/compose/src/optical.rs`), manual, none | ~ | Optical is an approximation of Adobe's algorithm (#181), not a match: imported display text can still break differently |
 | Tracking, scale, skew, baseline shift | ✓ | ✓ | ✓ | |
@@ -92,3 +92,19 @@ Measured from the table above (2026-10-10): 34 rows, 18 ✓, 16 ~, 0 ✗, scorin
 |---|---|---|
 | 2026-10-10 | major | Created: typography checklist (34 rows), fidelity gap and oracle plan |
 | 2026-10-10 | minor | Text wrap: wrap sides and contour types |
+
+### Hungarian hyphenation
+
+Hungarian extended Huhyphn patterns are embedded under MPL-1.1. Selected line breaks
+add the required display letters (asz-szony, köny-nyen, hosz-szú), including their
+width in both composers. Lookup normalization preserves the original story bytes.
+Two malformed upstream replacement declarations are corrected; provenance and
+rebuilding instructions live in assets/hyphenation/hu and tools/hu-hyphenation.
+Compatibility-ligature replacements which cannot be expressed as an insertion are
+left unbroken. Explicit soft hyphens and user dictionary exceptions keep precedence.
+
+Nonstandard inserted letters and their hyphen are exported to PDF as outlines, leaving
+the original source text selectable without duplicated display characters.
+
+Inserted letters retain the run’s OpenType features (including real small caps)
+and tracking; the stored shaped advance is used for fitting and drawing.

@@ -2025,6 +2025,10 @@ fn check(ui: &mut egui::Ui, d: &mut Dialog, key: &str, label: &str) {
 }
 
 pub fn show(app: &mut DesignApp, ctx: &egui::Context) {
+    if app.ui.dialog.as_ref().is_some_and(|d| d.id == "spelling") {
+        crate::spelling_ui::show(app, ctx);
+        return;
+    }
     let Some(mut d) = app.ui.dialog.clone() else { return };
     // Enter and Escape belong to an open popup (a menu, a name field) rather than the dialog.
     // Read before the dialog draws: a popup closed by this frame's Escape is still open here.

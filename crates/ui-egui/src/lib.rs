@@ -27,6 +27,7 @@ mod prefs;
 pub mod render_worker;
 mod rtl;
 mod section_options;
+mod spelling_ui;
 pub mod story_editor;
 pub mod taskbar;
 pub mod theme;
