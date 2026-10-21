@@ -346,13 +346,25 @@ list) · [roadmap.md](docs/roadmap.md) (milestones, plan) · [parity-checklist.m
 
 ## Progress log
 
-- **2026-10-21 · HU2**: Hungarian spelling with a patched Rust Spellbook engine, a correction dialog, and extended hyphenation with two corrected Huhyphn rules, NFC/case-safe source mapping and width-aware inserted letters in both composers. Source text stays unchanged; PDF display additions are outlines so extraction preserves the word. Portable regression tests and pinned MPL sources included; see docs/hungarian-language-support.md.
-
 Newest first.
+
+- **2026-10-21** · HU2: Hungarian spelling with a patched Rust Spellbook engine, a correction dialog, and extended hyphenation with two corrected Huhyphn rules, NFC/case-safe source mapping and width-aware inserted letters in both composers. Source text stays unchanged; PDF display additions are outlines so extraction preserves the word. Portable regression tests and pinned MPL sources included; see docs/hungarian-language-support.md. No readiness percentage change.
 
 - **2026-10-20** · HU1: Hungarian review corrections distinguish numbers/counts and text/grid columns (four context captions), consistently use formal address, and align menu paths with visible labels. Added context and menu-path regression coverage; corrected localization documentation. No readiness percentage change.
 
+- **2026-10-18** · View › Screen Mode: Bleed and Slug do what they say. Both were selectable from the toolbar, the View menu and `view.screenMode` but drew the canvas exactly as Normal did, guides and all; they are preview modes now, and what each page shows reaches the bleed box or the slug box instead of stopping at the trim. The slug guide is drawn as well, in the Slug colour from Preferences › Guides & Pasteboard, which nothing had read. No readiness percentage change.
+
 - **2026-10-17** · HU1: Hungarian (`hu` / Magyar) interface with 1,917 entries and two context captions, including tool names; AI-assisted and initially reviewed by a native DTP practitioner. Unknown/new strings remain English. Hungarian spelling and hyphenation remain follow-up work. No readiness percentage change.
+
+- **2026-10-17** · File › Package writes the document's and the IDML's links relative to the package (`Links/logo.png`, `file:Links/logo.png`), so a package holds no path from the machine that made it; opening a document resolves them to the files beside it. Links › Copy Link(s) To still links by full path. (#340). No readiness percentage change.
+
+- **2026-10-17** · Object strokes reject malformed types and unknown type fields before changing the document; command help lists every stroke kind and its required fields. No readiness percentage change.
+
+- **2026-10-17** · Docs: documented a persistent source CLI install with Cargo, MCP-client PATH setup and bare-name server registration in `docs/mcp.md`. No readiness percentage change.
+
+- **2026-10-16** · Type › Reload Fonts (`font.reload`): fonts installed, edited or removed while DesignCraft runs are read again without a restart, and the open documents recompose with them (#328, #547). An edited font file is noticed by its length and modification time; bundled, added and document fonts stay as they are. InDesign does this by itself, so noticing changes automatically is still open (gap 6). No readiness percentage change.
+
+- **2026-10-16** · Parents can be deleted from their Pages-panel context menu or `layout.parents.delete {id}`. Applied-page and based-on references are cleared, local override copies survive, and Undo restores the parent. Addresses the deletion portion of #956; no readiness percentage change.
 
 - **2026-10-16** · Threading: the loaded text cursor threads into a text frame inside a group (it hit the group and showed it could not thread); a plain click still selects the group (#1075). Gap 27 closed. No readiness percentage change.
 - **2026-10-16** · Greek text hyphenates. The patterns were never compiled in, so Greek set unhyphenated however narrow the column; `"Greek"`, `"Greek: Greece"`, `el` and `el-GR` all resolve now and ανθρωπος breaks αν-θρω-πος. They are the monotonic patterns (hyph-el-monoton, Dimitrios Filippou, under MIT), which is what polytonic text hyphenates by too. Five of InDesign's ~40 hyphenation languages. No readiness percentage change.

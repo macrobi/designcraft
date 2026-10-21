@@ -35,11 +35,11 @@ for n,line in enumerate(src.splitlines(),1):
     counts[key]=counts.get(key,0)+1
 assert af_left==0 and rules_left==0
 out=Path('data/converted'); out.mkdir(exist_ok=True)
-(out/'hu_HU.aff').write_text('\n'.join(rows)+'\n')
+(out/'hu_HU.aff').write_text('\n'.join(rows)+'\n', encoding='utf-8', newline='\n')
 (out/'hu_HU.dic').write_bytes(Path('data/hu_HU.dic').read_bytes())
 # Confirm aliases stayed unchanged in dictionary and continuation classes.
 assert (out/'hu_HU.dic').read_bytes()==Path('data/hu_HU.dic').read_bytes()
 for old,new in zip([l for l in src.splitlines() if l.startswith((b'PFX ',b'SFX '))],[l.encode() for l in rows if l.startswith(('PFX ','SFX '))]):
     assert old.split(maxsplit=2)[2]==new.split(maxsplit=2)[2]
-Path('conversion.json').write_text(json.dumps({'directives':counts,'source_sha256':hashlib.sha256(src).hexdigest(),'converted_sha256':hashlib.sha256((out/'hu_HU.aff').read_bytes()).hexdigest(),'dictionary_unchanged':True,'flag_mode':'num; original byte values preserved'},indent=2))
+Path('conversion.json').write_text(json.dumps({'directives':counts,'source_sha256':hashlib.sha256(src).hexdigest(),'converted_sha256':hashlib.sha256((out/'hu_HU.aff').read_bytes()).hexdigest(),'dictionary_unchanged':True,'flag_mode':'num; original byte values preserved'},indent=2), encoding='utf-8', newline='\n')
 print('Converted flags without changing dictionary or affix payloads.')

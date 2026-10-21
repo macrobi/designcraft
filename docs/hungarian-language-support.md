@@ -21,7 +21,7 @@ Paragraph limits, no-break formatting, explicit soft hyphens and user exceptions
 
 The original alternative-license notices are retained; this contribution selects the MPL options. No native Hunspell/Hyphen library is linked. Unused upstream GPL English fixtures, French dictionaries, examples and legacy fixture suites are not distributed in the minimal Spellbook vendor tree. Its independent integration test target covers the local fixes without those fixtures. Existing upstream unit-test source is retained, but its fixture-dependent lib/doctests are not enabled by the minimal manifest.
 
-Local Spellbook fixes cover signed syllable accounting, permitted suffix chains, COMPOUNDRULE endings (including numbers), compound-aware suggestions and forbidden-word/affix interactions. See the vendor modification notice and regression target.
+Local Spellbook fixes cover signed syllable accounting, permitted suffix chains, COMPOUNDRULE endings (including numbers), compound-aware suggestions, ngram prefix/suffix expansion and forbidden-word/affix interactions. See the vendor modification notice and regression target.
 
 ## Reproducing the data
 

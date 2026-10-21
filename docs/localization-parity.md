@@ -48,8 +48,8 @@ caption, table row/column movement and row-height distribution now use the exist
 catalog. Print, import options and an active table were rendered in Japanese and English with
 craft-fonts. The language totals above retain their dated measurement; this is a targeted fix.
 
-Hungarian follow-up (2026-10-17): `hu.rs` adds **1,917 entries and four context-specific
-captions**, including the 37 tool names. This is a partial interface catalog based on an earlier
+Hungarian follow-up (2026-10-17, updated 2026-10-21): `hu.rs` has **1,925 entries and four
+context-specific captions**, including the 37 tool names. This is a partial interface catalog based on an earlier
 source snapshot, not a new coverage measurement against current main. It was prepared with AI
 assistance and initially reviewed by a native Hungarian contributor with over 30 years of DTP
 experience; further terminology and in-context review is welcome. Preferences lists `Magyar`;
@@ -77,7 +77,7 @@ eight of the twelve (cs, da, el, en_GB, fi, hu, it, nb, nl, pl, ro, ru, sq, sv, 
 ## Document languages
 
 InDesign 2026 hyphenates and spell-checks ~40 languages (Hunspell and Duden dictionaries).
-DesignCraft hyphenates **English, Spanish, Portuguese and Norwegian** and spell-checks **English** only. Text language
+DesignCraft hyphenates **English, Spanish, Portuguese, Norwegian, Greek and Hungarian** and spell-checks **English and Hungarian**. Text language
 can be set per paragraph and character (Properties, Character panel) and drives quotes and
 locale shaping. See [typography-parity.md](typography-parity.md).
 
@@ -98,7 +98,7 @@ locale shaping. See [typography-parity.md](typography-parity.md).
 
 | Date | Change | Summary |
 |---|---|---|
-| 2026-10-21 | minor | Hungarian spelling/hyphenation support; eight additional interface captions; see the language-support document |
+| 2026-10-21 | minor | Hungarian spelling/hyphenation support; eight additional interface entries; see the language-support document |
 | 2026-10-20 | minor | Hungarian review: four context captions, formal address, consistent menu paths; corrected other-language count to six |
 | 2026-10-17 | minor | Hungarian (`hu`) interface added: 1,917 entries and two context captions; initial native-speaker review |
 | 2026-10-11 | minor | Localized Japanese print, import and table controls; checked Japanese and English renders |

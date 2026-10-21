@@ -20,7 +20,7 @@ def main():
     source.add_argument("--download", action="store_true", help="download only the pinned public inputs")
     parser.add_argument("--check", action="store_true")
     args = parser.parse_args()
-    provenance = json.loads((ASSETS / "sources.json").read_text())
+    provenance = json.loads((ASSETS / "sources.json").read_text(encoding='utf-8'))
     scratch = ROOT / "Output/DictionaryVerification"
     scratch.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(dir=scratch) as tmp:

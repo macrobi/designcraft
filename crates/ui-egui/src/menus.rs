@@ -966,11 +966,8 @@ fn toggle_tabs_panel(app: &mut DesignApp) {
 
 /// Run a UI command; `None` if `id` isn't one.
 pub fn run_ui(app: &mut DesignApp, id: &str, p: &Value) -> Option<Result<Value, String>> {
-    if id == "spelling.check" && !app.in_control {
-        return Some(crate::spelling_ui::open(app));
-    }
     let was_find = app.ui.dialog.as_ref().is_some_and(|d| d.id == "findChange");
-    let result = run_ui_inner(app, id, p);
+    let result = if id == "spelling.check" && !app.in_control { Some(crate::spelling_ui::open(app)) } else { run_ui_inner(app, id, p) };
     if was_find && app.ui.dialog.as_ref().is_none_or(|d| d.id != "findChange") {
         app.session.reset_find_scope();
     }
@@ -2466,17 +2463,17 @@ pub fn close_document(app: &mut DesignApp, index: Option<usize>) {
 /// A menu item was chosen. An engine command whose label ends in "…" and that takes parameters
 /// opens a dialog built from its parameter documentation (see [`crate::dialogs::command_fields`]).
 pub fn activate(app: &mut DesignApp, id: &str, params: &Value) {
+    let was_find = app.ui.dialog.as_ref().is_some_and(|d| d.id == "findChange");
     if id == "spelling.check" {
         if let Err(e) = crate::spelling_ui::open(app) {
             app.status(e);
         }
-        return;
+    } else {
+        if waits_for_ime(app, id) {
+            return;
+        }
+        activate_inner(app, id, params);
     }
-    if waits_for_ime(app, id) {
-        return;
-    }
-    let was_find = app.ui.dialog.as_ref().is_some_and(|d| d.id == "findChange");
-    activate_inner(app, id, params);
     if was_find && app.ui.dialog.as_ref().is_none_or(|d| d.id != "findChange") {
         app.session.reset_find_scope();
     }

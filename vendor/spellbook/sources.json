@@ -27,7 +27,7 @@
     },
     "src/suggester/ngram.rs": {
       "upstream_sha256": "6dd40efdc52c0653f397288bca9c890282aa8664338c51daac3b8a9f78427ac6",
-      "local_sha256": "8955c3309e3494f2d0659b1218d9f33ca3b2e3e41a11c9e787f50fe949f09644"
+      "local_sha256": "7e5ce35fea31f09b4fb82bcd9633a3d5c244b2f5bac19bb9f0230c4f84732aac"
     },
     "src/suggester.rs": {
       "upstream_sha256": "26bd1c2ead5a93cd35dd868963e53e62d7386717bd8bafd6cb3014f105990caf",

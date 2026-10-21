@@ -7,18 +7,20 @@ Runtime changes:
 - Licensed suffix chains and final COMPOUNDRULE suffixes, including numeric compounds.
 - Terminal suffix forbidden-flag behavior, homonyms and full-word bans.
 - Compound-aware correction candidates, bounded by the existing word/suggestion limits.
+- Ngram prefix/suffix expansion retains the suffix and applies prefix stripping to the
+  same derived stem that passed its strip and condition checks (including a panic regression).
 Some upstream source formatting differs due to the parent project's rustfmt settings.
 
 Vendoring:
 Only src/, LICENSE, README.md, Cargo.toml, Cargo.lock, this notice, sources.json and our
-tests/hungarian_compatibility.rs are distributed. The runtime source is identical
-to the manually tested application. Upstream standalone examples, benchmarks,
+tests/hungarian_compatibility.rs are distributed. This revision includes the reviewed
+ngram fix after the manually tested application. Upstream standalone examples, benchmarks,
 legacy fixtures and full English/French dictionaries are omitted.
 The upstream English unit-test fixture has a separate GPL license and is not
 part of this distribution. Upstream fixture-dependent lib/doctests are disabled
 in this minimal manifest, rather than silently replacing their data. Upstream
 test modules remain in the preserved source but are not the default test target.
-The independent integration suite includes four synthetic regressions, 550
+The independent integration suite includes six synthetic regressions, 550
 recorded Hunspell verdicts and ten expected Hungarian suggestions.
 Run: cargo test --manifest-path vendor/spellbook/Cargo.toml --test hungarian_compatibility
 This target is explicitly invoked by cargo xtask ci.

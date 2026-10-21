@@ -313,7 +313,7 @@ impl<S: BuildHasher> Suggester<'_, S> {
                     continue;
                 }
 
-                let expanded = prefix.to_derived(stem);
+                let expanded = prefix.to_derived(suffixed_stem);
                 expanded_list.push(expanded);
             }
         }

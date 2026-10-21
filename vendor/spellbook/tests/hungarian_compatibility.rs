@@ -101,3 +101,26 @@ fn supplies_expected_hungarian_corrections() {
     }
     assert_eq!(count, 10);
 }
+
+#[test]
+fn ngram_suggestions_preserve_crossproduct_suffixes() {
+    let aff = "SET UTF-8\nPFX P Y 1\nPFX P 0 un .\nSFX S Y 1\nSFX S 0 ed .\n";
+    let dict = Dictionary::new(aff, "1\nrecord/PS\n").unwrap();
+    let mut suggestions = Vec::new();
+    // Multiple substitutions require the ngram path, not single-edit corrections.
+    dict.suggester().with_ngram_suggestions(false).suggest("unrxxorded", &mut suggestions);
+    assert!(!suggestions.iter().any(|s| s == "unrecorded"));
+    dict.suggest("unrxxorded", &mut suggestions);
+    assert!(suggestions.iter().any(|s| s == "unrecorded"), "{suggestions:?}");
+}
+
+#[test]
+fn ngram_prefix_strip_uses_the_checked_suffixed_stem() {
+    let aff = "SET UTF-8\nPFX P Y 1\nPFX P recorded unrecorded .\n\
+               SFX S Y 1\nSFX S record recorded .\n";
+    let dict = Dictionary::new(aff, "1\nrecord/PS\n").unwrap();
+    // The prefix's strip matches only the suffixed stem. Applying it to the bare
+    // root panicked even though the crossproduct condition had already passed.
+    let mut suggestions = Vec::new();
+    dict.suggest("unrecordedxrecorded", &mut suggestions);
+}
