@@ -24,6 +24,30 @@ fn dictionary() -> Option<&'static Extended> {
 /// Original character offsets, with an insertion before the hyphen if needed.
 /// Unsupported compatibility-ligature replacements are conservatively left unbroken.
 pub(super) fn opportunities(word: &str, lim: &Limits) -> Vec<Opportunity> {
+    if word.len() > 1024 {
+        return Vec::new();
+    }
+    let mut out = Vec::new();
+    let mut start = None;
+    // Keep combining marks and soft hyphens inside their word so normalization
+    // and explicit-break precedence remain unchanged. The sentinel flushes the last run.
+    for (at, (byte, c)) in word.char_indices().chain(std::iter::once((word.len(), ' '))).enumerate() {
+        if super::is_word_char(c) || unicode_normalization::char::is_combining_mark(c) || c == '\u{ad}' {
+            start.get_or_insert((byte, at));
+        } else if let Some((byte_start, char_start)) = start.take() {
+            let Some(run) = word.get(byte_start..byte) else { continue };
+            let leading = run.chars().take_while(|&c| super::is_apostrophe(c)).count();
+            let core = run.trim_matches(super::is_apostrophe);
+            out.extend(word_opportunities(core, lim).into_iter().map(|mut point| {
+                point.at += char_start + leading;
+                point
+            }));
+        }
+    }
+    out
+}
+
+fn word_opportunities(word: &str, lim: &Limits) -> Vec<Opportunity> {
     if word.len() > 1024
         || word.chars().filter(|c| c.is_alphabetic()).count() < lim.min_word.max(2)
         || (!lim.capitalized && word.chars().next().is_some_and(char::is_uppercase))
