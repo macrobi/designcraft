@@ -348,6 +348,8 @@ list) · [roadmap.md](docs/roadmap.md) (milestones, plan) · [parity-checklist.m
 
 Newest first.
 
+- **2026-10-22** · HU2: aligned the Hungarian Window/Arrange customization path with its visible label and corrected Spellbook’s SIMPLIFIEDTRIPLE look-behind guard, with ASCII/multibyte regression coverage. No readiness percentage change.
+
 - **2026-10-22** · HU2: bounded web spelling scans, corrected middle-affix conditions in Spellbook, strengthened Hungarian no-break tests, documented Russian UI support, and integrated main with both general and Hungarian-specific tests retained. No readiness percentage change.
 - **2026-10-22** · HU2: integrated current main while preserving both branches’ composition tests and progress entries; added Hungarian labels for Select All Guides, Ruler Guide, Move Column Guide and Lock Column Guides. No readiness percentage change.
 - **2026-10-21** · HU2: Hungarian spelling with a patched Rust Spellbook engine, a correction dialog, and extended hyphenation with two corrected Huhyphn rules, NFC/case-safe source mapping and width-aware inserted letters in both composers. Source text stays unchanged; PDF display additions are outlines so extraction preserves the word. Portable regression tests and pinned MPL sources included; see docs/hungarian-language-support.md. No readiness percentage change.
