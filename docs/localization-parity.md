@@ -1,6 +1,6 @@
 # Localization parity
 
-> **Last reviewed:** 2026-10-11 · **Last updated:** 2026-10-21 · **Change:** minor (Hungarian review corrections; older catalog counts retain their dated measurement) · **Target:** Adobe InDesign 2026 (21.6)
+> **Last reviewed:** 2026-10-11 · **Last updated:** 2026-10-22 · **Change:** minor (Hungarian guide labels and review corrections; older catalog counts retain their dated measurement) · **Target:** Adobe InDesign 2026 (21.6)
 
 Per-language status of the DesignCraft interface and of document typesetting in each script.
 Script-specific typesetting detail: [cjk.md](cjk.md), [cjk-typography.md](cjk-typography.md),
@@ -48,7 +48,7 @@ caption, table row/column movement and row-height distribution now use the exist
 catalog. Print, import options and an active table were rendered in Japanese and English with
 craft-fonts. The language totals above retain their dated measurement; this is a targeted fix.
 
-Hungarian follow-up (2026-10-17, updated 2026-10-21): `hu.rs` has **1,925 entries and four
+Hungarian follow-up (2026-10-17, updated 2026-10-22): `hu.rs` has **1,929 entries and four
 context-specific captions**, including the 37 tool names. This is a partial interface catalog based on an earlier
 source snapshot, not a new coverage measurement against current main. It was prepared with AI
 assistance and initially reviewed by a native Hungarian contributor with over 30 years of DTP
@@ -64,7 +64,7 @@ their visible labels. These corrections do not add new catalog keys or change co
 
 | Language | Code | UI strings translated | Status |
 |---|---|---|---|
-| Hungarian | hu | 1,925 entries + 4 context captions (2026-10-21); native review | partial |
+| Hungarian | hu | 1,929 entries + 4 context captions (2026-10-22); native review | partial |
 | Czech | cs | 1,722 (99%), plural categories handled | partial |
 | Italian | it | 1,464 (85%) | partial |
 | Ukrainian | uk | 1,432 (83%), plural categories handled | partial |
