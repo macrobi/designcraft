@@ -23,7 +23,7 @@ On native platforms the full report is built on a background thread. On the web,
 
 The original alternative-license notices are retained; this contribution selects the MPL options. No native Hunspell/Hyphen library is linked. Unused upstream GPL English fixtures, French dictionaries, examples and legacy fixture suites are not distributed in the minimal Spellbook vendor tree. Its independent integration test target covers the local fixes without those fixtures. Existing upstream unit-test source is retained, but its fixture-dependent lib/doctests are not enabled by the minimal manifest.
 
-Local Spellbook fixes cover signed syllable accounting, permitted suffix chains, COMPOUNDRULE endings (including numbers), compound-aware suggestions, ngram prefix/suffix expansion, restored-stem conditions in alternating three-affix chains, and forbidden-word/affix interactions. See the vendor modification notice and regression target.
+Local Spellbook fixes cover signed syllable accounting, permitted suffix chains, COMPOUNDRULE endings (including numbers), compound-aware suggestions, ngram prefix/suffix expansion, restored-stem conditions in alternating three-affix chains, the SIMPLIFIEDTRIPLE look-behind guard, and forbidden-word/affix interactions. See the vendor modification notice and regression target.
 
 ## Reproducing the data
 
@@ -54,5 +54,7 @@ The fallible parser rejects the two originally malformed replacement declaration
 Run `CARGO_BUILD_JOBS=1 RUST_TEST_THREADS=1 cargo xtask ci`. This runs the workspace tests plus the standalone Spellbook compatibility suite and hyphenation generator tests. See tools/hu-language-tests/README.md for focused commands and corpus provenance.
 
 Recorded comparisons cover 550 spelling verdicts, ten expected corrections and 857 hyphenation words. Synthetic cases protect the overflow and suffix fixes, including positive/negative three-affix conditions checked against native Hunspell 1.7.5. Incremental-scan tests compare exact ranges with the full scan, preserve words across tiny budgets, and bound long tokens/punctuation and repeated per-frame requests. Layout tests cover both composers, uppercase and small caps, decomposed accents, no-break/mixed-language text, width fitting and original-source mapping; PDF tests check extracted text. These are bounded regression samples, not exhaustive compatibility certification. The local app and sample were manually accepted by Veress Róbert.
+
+Synthetic SIMPLIFIEDTRIPLE tests cover equal and unequal preceding codepoints, including UTF-8. Hunspell 1.7.5 agrees on the ASCII-repeat cases (also with accented prefixes); it rejects the synthetic repeated-accent form `aáábc` that Spellbook accepts. The bundled Hungarian dictionary does not enable this option, so this known generic-engine difference does not affect its spelling results.
 
 Suggestion ordering can differ from Hunspell. Other languages' spelling support is unchanged. Rare legacy compatibility-ligature replacement patterns that cannot be represented by insertion are conservatively left unbroken. Explicit user hyphenation exceptions supply source break positions, not replacement-letter rules.
