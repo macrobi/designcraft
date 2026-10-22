@@ -4,7 +4,20 @@ use unicode_normalization::UnicodeNormalization;
 
 static DICTIONARY: OnceLock<std::result::Result<spellbook::Dictionary, String>> = OnceLock::new();
 
+// Thread-local test instrumentation observes requests even after OnceLock is warm.
+#[cfg(test)]
+std::thread_local! {
+    static INITIALIZATION_CALLS: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
+}
+
+#[cfg(test)]
+pub(super) fn initialization_calls() -> usize {
+    INITIALIZATION_CALLS.with(std::cell::Cell::get)
+}
+
 pub(super) fn initialize() -> std::result::Result<&'static spellbook::Dictionary, &'static str> {
+    #[cfg(test)]
+    INITIALIZATION_CALLS.with(|calls| calls.set(calls.get() + 1));
     DICTIONARY
         .get_or_init(|| {
             spellbook::Dictionary::new(
