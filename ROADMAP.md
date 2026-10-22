@@ -348,6 +348,8 @@ list) · [roadmap.md](docs/roadmap.md) (milestones, plan) · [parity-checklist.m
 
 Newest first.
 
+- **2026-10-22** · HU2: initialize the Hungarian spelling dictionary only for Hungarian text in the requested story scope; preserve independent English checks and Hungarian initialization errors, with regression coverage for empty, unsupported, selected-story and mixed-language cases. No readiness percentage change.
+
 - **2026-10-22** · HU2: aligned the Hungarian Window/Arrange customization path with its visible label and corrected Spellbook’s SIMPLIFIEDTRIPLE look-behind guard, with ASCII/multibyte regression coverage. No readiness percentage change.
 
 - **2026-10-22** · HU2: bounded web spelling scans, corrected middle-affix conditions in Spellbook, strengthened Hungarian no-break tests, documented Russian UI support, and integrated main with both general and Hungarian-specific tests retained. No readiness percentage change.
