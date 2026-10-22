@@ -281,12 +281,18 @@ pub fn suggestions(doc: &designcraft_doc::Document, story: &designcraft_doc::Sto
 fn check(s: &mut Session, p: &Value) -> Result<Value> {
     let st = s.doc()?;
     let d = &st.doc;
-    hungarian::initialize().map_err(|e| bad("spelling.check", e))?;
     let want_sugg = p.get("suggestions").and_then(Value::as_bool).unwrap_or(true);
     let stories: Vec<StoryId> = match p.get("story").and_then(Value::as_u64) {
         Some(id) => vec![StoryId(id)],
         None => d.stories.keys().copied().collect(),
     };
+    let has_hungarian = stories
+        .iter()
+        .filter_map(|sid| d.story(*sid))
+        .any(|story| language_runs(d, story).iter().any(|(_, language)| *language == Language::Hungarian));
+    if has_hungarian {
+        hungarian::initialize().map_err(|e| bad("spelling.check", e))?;
+    }
     let mut out = Vec::new();
     for sid in stories {
         let Some(story) = d.story(sid) else { continue };
@@ -398,6 +404,55 @@ mod hungarian_integration_tests {
             .map(|v| v["word"].as_str().unwrap().to_string())
             .collect()
     }
+    #[test]
+    fn non_hungarian_checks_do_not_initialize_hungarian() {
+        let mut empty = Session::new();
+        empty.execute("file.new", &json!({})).unwrap();
+        let before = hungarian::initialization_calls();
+        assert_eq!(empty.execute("spelling.check", &json!({})).unwrap(), json!([]));
+        assert_eq!(hungarian::initialization_calls(), before, "empty document");
+        for lang in ["English: USA", "German"] {
+            let (mut s, _) = document("typograpy", lang);
+            for suggestions in [false, true] {
+                let before = hungarian::initialization_calls();
+                let result = s.execute("spelling.check", &json!({"suggestions": suggestions})).unwrap();
+                assert_eq!(hungarian::initialization_calls(), before, "{lang}, suggestions={suggestions}");
+                assert_eq!(result.as_array().unwrap().len(), usize::from(lang == "English: USA"));
+            }
+        }
+    }
+
+    #[test]
+    fn hungarian_initialization_respects_story_scope() {
+        let (mut s, hu) = document("hejesírás", "hu");
+        let r = s.execute("frame.create", &json!({"rect": [36,36,500,700], "content":"text", "text":"typograpy"})).unwrap();
+        let en = r["story"].as_u64().unwrap();
+        s.execute("text.select", &json!({"story": en,"anchor":0,"focus":9})).unwrap();
+        s.execute("type.char", &json!({"attrs":{"language":"English: USA"}})).unwrap();
+        for sid in [en, u64::MAX] {
+            let before = hungarian::initialization_calls();
+            let result = s.execute("spelling.check", &json!({"story":sid})).unwrap();
+            assert_eq!(hungarian::initialization_calls(), before, "unselected Hungarian story must not initialize");
+            assert_eq!(result.as_array().unwrap().len(), usize::from(sid == en));
+        }
+        for params in [json!({"story":hu,"suggestions":false}), json!({"suggestions":false})] {
+            let before = hungarian::initialization_calls();
+            let result = s.execute("spelling.check", &params).unwrap();
+            assert!(hungarian::initialization_calls() > before);
+            assert!(result.as_array().unwrap().iter().any(|item| item["word"] == "hejesírás"));
+        }
+    }
+
+    #[test]
+    fn mixed_story_initializes_hungarian() {
+        let (mut s, sid) = document("typograpy hejesírás", "English: USA");
+        s.execute("text.select", &json!({"story":sid,"anchor":10,"focus":"typograpy hejesírás".len()})).unwrap();
+        s.execute("type.char", &json!({"attrs":{"language":"hu"}})).unwrap();
+        let before = hungarian::initialization_calls();
+        assert_eq!(words(&mut s), ["typograpy", "hejesírás"]);
+        assert!(hungarian::initialization_calls() > before);
+    }
+
     #[test]
     fn hungarian_text_preserves_compounds_numbers_case_and_byte_ranges() {
         let text = "Árvíztűrő tükörfúrógép munkavállalóinkkal 2026-ban 2026-ben hejesírás.";
