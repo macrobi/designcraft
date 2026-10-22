@@ -139,3 +139,21 @@ fn alternating_three_affixes_check_the_restored_middle_stem() {
         }
     }
 }
+
+#[test]
+fn simplified_triple_requires_two_equal_preceding_characters() {
+    let aff = "SET UTF-8\nCOMPOUNDMIN 1\nCOMPOUNDBEGIN B\nCOMPOUNDEND E\nSIMPLIFIEDTRIPLE\n";
+    for (first, second, valid, invalid) in
+        [("ball", "legény", "ballegény", "balegény"), ("ább", "bc", "ábbc", "ábc"), ("aáá", "ábc", "aáábc", "aábc")]
+    {
+        let dic = format!("2\n{first}/B\n{second}/E\n");
+        let dict = Dictionary::new(aff, &dic).unwrap();
+        assert!(dict.check(valid), "{valid}");
+        let ordinary = Dictionary::new(&aff.replace("SIMPLIFIEDTRIPLE\n", ""), &dic).unwrap();
+        assert!(!ordinary.check(valid), "{valid} requires SIMPLIFIEDTRIPLE");
+        let short_first = &first[..first.char_indices().last().unwrap().0];
+        let negative_dic = format!("2\n{short_first}/B\n{second}/E\n");
+        let negative = Dictionary::new(aff, &negative_dic).unwrap();
+        assert!(!negative.check(invalid), "{invalid}");
+    }
+}
