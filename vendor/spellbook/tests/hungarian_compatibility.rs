@@ -124,3 +124,18 @@ fn ngram_prefix_strip_uses_the_checked_suffixed_stem() {
     let mut suggestions = Vec::new();
     dict.suggest("unrecordedxrecorded", &mut suggestions);
 }
+
+#[test]
+fn alternating_three_affixes_check_the_restored_middle_stem() {
+    for (complex, middle, good, bad) in [
+        ("", "PFX P Y 1\nPFX P 0 un {condition}\nSFX A Y 1\nSFX A 0 s/BP .\nSFX B Y 1\nSFX B 0 x .\n", "f", "u"),
+        ("COMPLEXPREFIXES\n", "SFX S Y 1\nSFX S 0 ed {condition}\nPFX A Y 1\nPFX A 0 re/BS .\nPFX B Y 1\nPFX B 0 un .\n", "r", "d"),
+    ] {
+        let word = if complex.is_empty() { "unflowersx" } else { "unreflowered" };
+        for (condition, accepted) in [(good, true), (bad, false)] {
+            let aff = format!("SET UTF-8\n{complex}{}", middle.replace("{condition}", condition));
+            let dict = Dictionary::new(&aff, "1\nflower/A\n").unwrap();
+            assert_eq!(dict.check(word), accepted, "{word}, condition={condition}");
+        }
+    }
+}
