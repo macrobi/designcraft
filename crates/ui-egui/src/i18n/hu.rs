@@ -1849,7 +1849,7 @@ pub(super) const TABLE: &[(&str, &str)] = &[
     ("Width only", "Csak szélesség"),
     ("Width:", "Szélesség:"),
     ("Window", "Ablak"),
-    ("Window/Arrange", "Ablak/Elrendezés"),
+    ("Window/Arrange", "Ablak/Sorrend"),
     ("Window/Interactive", "Ablak/Interaktív"),
     ("Window/Interface Color Theme", "Ablak/Felület színtémája"),
     ("Window/Output", "Ablak/Kimenet"),
