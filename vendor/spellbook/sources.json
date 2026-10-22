@@ -15,7 +15,7 @@
     },
     "src/checker.rs": {
       "upstream_sha256": "161f12144e9cb92bf2da12ed0cb5f0f511237666dba95030d40c7c5efe754cd0",
-      "local_sha256": "5e98715b39c19747707efc8a242865ceb1d658a0a3b23ba1ff9fa69e8fba3435"
+      "local_sha256": "8cd1f8cf4de5b85aacc6b9899fe3dce983518df083768a17cca64d03b35da428"
     },
     "src/hash_bag.rs": {
       "upstream_sha256": "354fb1240c4a3b25b26dfc81ff10d4765dd215fb18d7384ec04bc9423d08c0f7",
