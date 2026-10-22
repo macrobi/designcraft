@@ -1,6 +1,8 @@
 //! Language-aware English and Hungarian spelling, shared by commands and dynamic underlines.
 
 mod hungarian;
+mod incremental;
+pub use incremental::SpellingCursor;
 
 use designcraft_compose::hyphen::Dictionary;
 use designcraft_doc::StoryId;
@@ -177,20 +179,24 @@ pub fn misspellings(doc: &designcraft_doc::Document, story: &designcraft_doc::St
         for local in tokens(text, language == Language::Hungarian) {
             let Some(word) = text.get(local.clone()) else { continue };
             let key = (language, word);
-            let valid = *checked.entry(key).or_insert_with(|| match language {
-                Language::English => {
-                    let acronym = word.chars().all(char::is_uppercase) && word.chars().count() <= 5;
-                    acronym || known(Dictionary::en_us(), user, &word.to_lowercase())
-                }
-                Language::Hungarian => user.iter().any(|u| u == &word.to_lowercase()) || hungarian::known(word),
-                Language::Unsupported => true,
-            });
+            let valid = *checked.entry(key).or_insert_with(|| valid_word(language, word, user));
             if !valid {
                 out.push(range.start + local.start..range.start + local.end);
             }
         }
     }
     out
+}
+
+fn valid_word(language: Language, word: &str, user: &[String]) -> bool {
+    match language {
+        Language::English => {
+            let acronym = word.chars().all(char::is_uppercase) && word.chars().count() <= 5;
+            acronym || known(Dictionary::en_us(), user, &word.to_lowercase())
+        }
+        Language::Hungarian => user.iter().any(|u| u == &word.to_lowercase()) || hungarian::known(word),
+        Language::Unsupported => true,
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
