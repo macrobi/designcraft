@@ -409,6 +409,42 @@ mod tests {
     }
 
     #[test]
+    fn hungarian_limits_apply_to_each_separator_separated_run() {
+        for separator in [" ", "-", "—", "/", "123"] {
+            let word = format!("asszony{separator}asszony");
+            assert_eq!(hyphen_points_in(&word, &Limits::default(), Lang::Hungarian), vec![2, 9 + separator.chars().count()]);
+            for lim in [
+                Limits { min_word: 8, ..Limits::default() },
+                Limits { after_first: 3, ..Limits::default() },
+                Limits { before_last: 6, ..Limits::default() },
+            ] {
+                assert!(hyphen_points_in(&word, &lim, Lang::Hungarian).is_empty(), "{word}: {lim:?}");
+                assert!(opportunities_in(&word, &lim, Lang::Hungarian).is_empty(), "{word}: {lim:?}");
+            }
+        }
+        let lim = Limits { capitalized: false, ..Limits::default() };
+        assert_eq!(hyphen_points_in("asszony-ASSZONY", &lim, Lang::Hungarian), vec![2]);
+        assert_eq!(hyphen_points_in("ASSZONY-asszony", &lim, Lang::Hungarian), vec![10]);
+    }
+
+    #[test]
+    fn hungarian_run_offsets_preserve_insertions_and_combining_marks() {
+        let lim = Limits::default();
+        for separator in [" ", "-", "—", "/", "123"] {
+            let first = "ko\u{308}nnyen";
+            let word = format!("({first}){separator}asszony!");
+            let second = 1 + first.chars().count() + 1 + separator.chars().count();
+            let expected = vec![(5, "y"), (second + 2, "z")];
+            let ops = opportunities_in(&word, &lim, Lang::Hungarian);
+            assert_eq!(ops.iter().map(|p| (p.at, p.suffix.as_ref())).collect::<Vec<_>>(), expected, "{word}");
+            assert_eq!(hyphen_points_in(&word, &lim, Lang::Hungarian), vec![5, second + 2], "{word}");
+        }
+        assert_eq!(hyphen_points_in("'asszony'", &lim, Lang::Hungarian), vec![3]);
+        assert!(hyphen_points_in("'ASSZONY'", &Limits { capitalized: false, ..lim }, Lang::Hungarian).is_empty());
+        assert!(hyphen_points_in("as\u{ad}szony", &lim, Lang::Hungarian).is_empty());
+    }
+
+    #[test]
     fn spanish_uses_the_bezos_patterns() {
         let es = Lang::for_language("Spanish").unwrap();
         assert_eq!(es, Lang::for_language("es_ES").unwrap());
