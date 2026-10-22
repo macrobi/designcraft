@@ -3385,7 +3385,7 @@ mod tests {
     fn hungarian_menu_paths_match_the_visible_submenu_labels() {
         // These paths are displayed by menu customization; they must use the same
         // captions as the actual menu tree, including nested special characters.
-        for title in ["Edit", "Type", "View"] {
+        for title in ["Edit", "Type", "View", "Window"] {
             for path in submenu_paths(title) {
                 let translated = crate::i18n::tr("hu", &path);
                 if translated == path {
