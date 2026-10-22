@@ -7363,21 +7363,30 @@ fn hungarian_layout_breaks_and_unbroken_text_preserve_source() {
 #[test]
 fn hungarian_manual_no_break_and_language_boundaries() {
     let word = "asszony";
-    for mode in 0..3 {
-        let (mut d, sid, _) = doc_with(word, Rect::new(0.0, 0.0, 20.0, 500.0), ParaAttrs::default());
-        d.story_mut(sid).unwrap().format_chars(0..word.len(), |f| {
-            f.over.language = Some("Hungarian".into());
-            f.over.no_break = Some(mode == 0);
-        });
-        if mode == 1 {
-            d.story_mut(sid).unwrap().format_chars(2..word.len(), |f| f.over.language = Some("English".into()));
+    let mut positive_control = false;
+    for width in (25..120).step_by(2) {
+        for mode in 0..4 {
+            let (mut d, sid, _) = doc_with(word, Rect::new(0.0, 0.0, width as f64, 500.0), ParaAttrs { hyph_zone: Some(0.0), ..Default::default() });
+            d.story_mut(sid).unwrap().format_chars(0..word.len(), |f| {
+                f.over.language = Some("Hungarian".into());
+                f.over.no_break = Some(mode == 0);
+            });
+            if mode == 1 {
+                d.story_mut(sid).unwrap().format_chars(2..word.len(), |f| f.over.language = Some("English".into()));
+            }
+            if mode == 2 {
+                d.story_mut(sid).unwrap().format_chars(0..word.len(), |f| f.over.language = Some("French".into()));
+            }
+            let cs = compose_story(&d, sid, &ComposeOptions::default());
+            let inserted = all_lines(&cs).iter().flat_map(|l| &l.glyphs).any(|g| g.generated_text.is_some());
+            if mode == 3 {
+                positive_control |= inserted;
+            } else {
+                assert!(!inserted, "mode={mode}, width={width}");
+            }
         }
-        if mode == 2 {
-            d.story_mut(sid).unwrap().format_chars(0..word.len(), |f| f.over.language = Some("French".into()));
-        }
-        let cs = compose_story(&d, sid, &ComposeOptions::default());
-        assert!(all_lines(&cs).iter().flat_map(|l| &l.glyphs).all(|g| g.generated_text.is_none()));
     }
+    assert!(positive_control, "unrestricted Hungarian must exercise the inserted-letter path");
     let text = "as\u{ad}szony";
     let (mut d, sid, _) = doc_with(text, Rect::new(0.0, 0.0, 25.0, 500.0), ParaAttrs::default());
     d.story_mut(sid).unwrap().format_chars(0..text.len(), |f| f.over.language = Some("Hungarian".into()));
