@@ -348,6 +348,17 @@ list) · [roadmap.md](docs/roadmap.md) (milestones, plan) · [parity-checklist.m
 
 Newest first.
 
+- **2026-10-22** · A ruler guide dragged with the Selection tools, out of a ruler, on its own or with other selected guides, snaps along its axis as objects do (#1221): to other ruler guides, margins, columns, bleed, page and object edges and centers (with the smart-guide mark) and the document grid, within the snap zone and following Snap to Guides and Smart Guides. Shift snaps to the ruler's ticks and Cmd suspends snapping. The preview line, the position readout and the drop use the same snapped position. No readiness percentage change.
+
+- **2026-10-22** · HU2: integrated current main while preserving both branches’ composition tests and progress entries; added Hungarian labels for Select All Guides, Ruler Guide, Move Column Guide and Lock Column Guides. No readiness percentage change.
+
+- **2026-10-22** · macOS: the app menu has a Language submenu after Settings… with each interface language in its own name and the current one checked, as in the suite's other apps; Preferences › General › Interface Language stays. No readiness percentage change.
+- **2026-10-22** · macOS menu bar: the menus keep working after the interface language or Show CJK Features changes (a rebuilt menu bar lost every click, Quit included), and its key equivalents are the shortcuts in effect, so a shortcut moved in the Keyboard Shortcuts editor leaves its old menu item. No readiness percentage change.
+
+- **2026-10-22** · Paragraph rules: Rule Above's offset is measured from the first line's baseline to the rule's bottom edge, as in InDesign. Rules sat one ascent too high and crossed the previous paragraph's text (reported from an imported INDD document). No readiness percentage change.
+
+- **2026-10-21** · Ruler guides are selected like objects (#1282): a click with the Selection tools selects a guide (also where it crosses an object), Shift-click adds or removes one, a new guide from the rulers is selected, a marquee that touches no object selects the guides it crosses, and Edit › Select All Guides (⌥⌘G, `guide.selectAll`) selects every unlocked guide on the spread. Selected guides draw thicker in their layer's color, drag together (all of them shown moving), nudge with the arrow keys and go with Delete, each as one undo step (`guide.select`, `guide.deselect`, `guide.moveBy`, `guide.delete {}`). With one guide selected the Control bar's X (vertical guide) or Y (horizontal guide) field and Properties › Transform show where it is, as the rulers measure, and typing a value moves it there. No readiness percentage change.
+
 - **2026-10-21** · HU2: Hungarian spelling with a patched Rust Spellbook engine, a correction dialog, and extended hyphenation with two corrected Huhyphn rules, NFC/case-safe source mapping and width-aware inserted letters in both composers. Source text stays unchanged; PDF display additions are outlines so extraction preserves the word. Portable regression tests and pinned MPL sources included; see docs/hungarian-language-support.md. No readiness percentage change.
 
 - **2026-10-20** · HU1: Hungarian review corrections distinguish numbers/counts and text/grid columns (four context captions), consistently use formal address, and align menu paths with visible labels. Added context and menu-path regression coverage; corrected localization documentation. No readiness percentage change.
@@ -361,6 +372,22 @@ Newest first.
 - **2026-10-17** · Object strokes reject malformed types and unknown type fields before changing the document; command help lists every stroke kind and its required fields. No readiness percentage change.
 
 - **2026-10-17** · Docs: documented a persistent source CLI install with Cargo, MCP-client PATH setup and bare-name server registration in `docs/mcp.md`. No readiness percentage change.
+
+- **2026-10-16** · Lock Guides and Lock Column Guides are commands in View ▸ Grids & Guides (`view.lockGuides`, ⌥⌘;, and `view.lockColumnGuides`), so the control channel and MCP reach them. Lock Column Guides is saved with the document, on in new ones, and read from and written to IDML's `ColumnGuideLocked`, which export always wrote as locked (#1096). No readiness percentage change.
+
+- **2026-10-16** · Layout: autoflow, inserted pages and new parents follow dragged column guides (#1096). Autoflow sets one frame per dragged column and counts the pages it adds from them; Insert Pages and New Parent keep the custom positions with the column count and gutter; `document.inspect` reports each page's gutter, column rects and whether its columns are custom. No readiness percentage change.
+
+- **2026-10-16** · IDML: custom column positions are checked before they are used (#1096). A set must give two edges per column, ascending from the left margin to the right one; any other (a wrong count, unsorted or non-numeric values, a list longer than 216 columns allow, or positions left behind by a margin or page-size change) is the even split, in the canvas, on import and on export, instead of columns drawn outside the margins. No readiness percentage change.
+
+- **2026-10-16** · IDML: a page keeps column guides that were dragged off centre (InDesign's Custom columns). They were divided evenly on import, so the gutter sprang back to the middle; the imported positions now place the columns, with the canvas guides, snapping and text placement following them, and they are written back on export. Layout › Margins and Columns re-divides them evenly when the count or gutter changes, as InDesign's does. No readiness percentage change.
+
+- **2026-10-16** · Lock Guides and Lock Column Guides are commands in View ▸ Grids & Guides (`view.lockGuides`, ⌥⌘;, and `view.lockColumnGuides`), so the control channel and MCP reach them. Lock Column Guides is an undo step, is saved with the document, on in new ones, and read from and written to IDML's `ColumnGuideLocked`, which export always wrote as locked (#1096). No readiness percentage change.
+
+- **2026-10-16** · Layout: Margins and Columns keeps dragged column guides unless the column count or gutter changes (#1096). The dialog sends every field on OK, so a margin-only change re-divided the columns evenly. Margin changes keep the positions; the columns follow them only while they fit the margin box. No readiness percentage change.
+
+- **2026-10-16** · Layout: autoflow, inserted pages and new parents follow dragged column guides (#1096). Autoflow sets one frame per dragged column and counts the pages it adds from them; Insert Pages and New Parent keep the custom positions with the column count and gutter; a page that moves to the other side of the spine (inserted, deleted or moved pages, Duplicate Spread, a new parent's other page) has them mirrored across its margin box, as InDesign does; `document.inspect` reports each page's gutter, column rects and whether its columns are custom. No readiness percentage change.
+
+- **2026-10-16** · Selection: drag a column guide to move its gutter, as in InDesign (#1096). Both guides of the gutter move together and keep its width, stop at the neighbouring guides and the margins, and snap to the document grid, guides and objects, or with Shift to the ruler's tick marks; Escape cancels and the drag is one undo step. Locked column guides (the default) are not picked. A document page takes the result as its own columns; on a parent page it passes to the pages that follow it. `layout.moveColumnGuide` does the same over the control channel and MCP. No readiness percentage change.
 
 - **2026-10-16** · Type › Reload Fonts (`font.reload`): fonts installed, edited or removed while DesignCraft runs are read again without a restart, and the open documents recompose with them (#328, #547). An edited font file is noticed by its length and modification time; bundled, added and document fonts stay as they are. InDesign does this by itself, so noticing changes automatically is still open (gap 6). No readiness percentage change.
 
