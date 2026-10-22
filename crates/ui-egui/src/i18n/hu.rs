@@ -3,6 +3,7 @@
 //! Further terminology and in-context UI review is welcome.
 //! Uncatalogued keys fall back to English.
 pub(super) const TABLE: &[(&str, &str)] = &[
+    ("Ruler Guide", "Vonalzó-segédvonal"),
     ("Skip", "Kihagyás"),
     ("Checking spelling…", "Helyesírás ellenőrzése…"),
     ("Spelling check complete.", "A helyesírás ellenőrzése befejeződött."),
@@ -916,6 +917,7 @@ pub(super) const TABLE: &[(&str, &str)] = &[
     ("Location:", "Hely:"),
     ("Lock", "Zárolás"),
     ("Lock Guides", "Segédvonalak zárolása"),
+    ("Lock Column Guides", "Hasábsegédvonalak zárolása"),
     ("Lock Others", "Többi zárolása"),
     ("Loop", "Ismétlés"),
     ("Low Resolution", "Kis felbontás"),
@@ -963,6 +965,7 @@ pub(super) const TABLE: &[(&str, &str)] = &[
     ("Move Column", "Oszlop áthelyezése"),
     ("Move Gap", "Hézag áthelyezése"),
     ("Move Guide", "Segédvonal áthelyezése"),
+    ("Move Column Guide", "Hasábsegédvonal áthelyezése"),
     ("Move Layer", "Réteg áthelyezése"),
     ("Move Pages", "Oldalak áthelyezése"),
     ("Move Pages…", "Oldalak áthelyezése…"),
@@ -1429,6 +1432,7 @@ pub(super) const TABLE: &[(&str, &str)] = &[
     ("Section Symbol", "Paragrafusjel"),
     ("Select", "Kijelölés"),
     ("Select All", "Az összes kijelölése"),
+    ("Select All Guides", "Összes segédvonal kijelölése"),
     ("Select All on Layer", "Összes kijelölése a rétegen"),
     ("Select Cells", "Cellák kijelölése"),
     ("Select Column", "Oszlop kijelölése"),
