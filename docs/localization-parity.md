@@ -48,7 +48,7 @@ caption, table row/column movement and row-height distribution now use the exist
 catalog. Print, import options and an active table were rendered in Japanese and English with
 craft-fonts. The language totals above retain their dated measurement; this is a targeted fix.
 
-Hungarian follow-up (2026-10-17, updated 2026-10-22): `hu.rs` has **1,929 entries and four
+Hungarian follow-up (2026-10-17, updated 2026-10-22): `hu.rs` has **1,925 entries and four
 context-specific captions**, including the 37 tool names. This is a partial interface catalog based on an earlier
 source snapshot, not a new coverage measurement against current main. It was prepared with AI
 assistance and initially reviewed by a native Hungarian contributor with over 30 years of DTP
@@ -64,14 +64,15 @@ their visible labels. These corrections do not add new catalog keys or change co
 
 | Language | Code | UI strings translated | Status |
 |---|---|---|---|
-| Hungarian | hu | 1,929 entries + 4 context captions (2026-10-22); native review | partial |
+| Russian | ru | Shipped catalog; current coverage not measured | partial |
+| Hungarian | hu | 1,925 entries + 4 context captions (2026-10-22); native review | partial |
 | Czech | cs | 1,722 (99%), plural categories handled | partial |
 | Italian | it | 1,464 (85%) | partial |
 | Ukrainian | uk | 1,432 (83%), plural categories handled | partial |
 | Polish | pl | 1,717 (99%), count captions category-first; AI-drafted, awaiting native review | partial |
 | Georgian | ka | 1,724 (~100%: every catalog key plus the command labels the others lack), count captions as `noun: n` | partial (reviewed by a native speaker) |
 
-DesignCraft ships **6** interface languages beyond the twelve; InDesign ships 17 beyond its
+DesignCraft ships **7** interface languages beyond the twelve; InDesign ships 17 beyond its
 eight of the twelve (cs, da, el, en_GB, fi, hu, it, nb, nl, pl, ro, ru, sq, sv, tr, uk, zh_TW).
 
 ## Document languages
@@ -95,6 +96,9 @@ locale shaping. See [typography-parity.md](typography-parity.md).
 | **Total** | **120–180** + native-speaker review for 11 languages (human) |
 
 ## Revision history
+
+The 2026-10-22 integration retains all live Hungarian captions, registers their UI keys in the shared catalog test, and removes four unused icon/property-key entries (`IT`, `VA`, `firstTint`, `nextTint`).
+
 
 | Date | Change | Summary |
 |---|---|---|
