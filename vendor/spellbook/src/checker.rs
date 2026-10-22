@@ -927,7 +927,7 @@ impl<'a, S: BuildHasher> Checker<'a, S> {
 
                 let stem2 = prefix.to_stem(&stem);
 
-                if !prefix.condition_matches(&stem) {
+                if !prefix.condition_matches(&stem2) {
                     continue;
                 }
 
@@ -1141,7 +1141,7 @@ impl<'a, S: BuildHasher> Checker<'a, S> {
 
                 let stem2 = suffix.to_stem(&stem);
 
-                if !suffix.condition_matches(&stem) {
+                if !suffix.condition_matches(&stem2) {
                     continue;
                 }
 
