@@ -8,7 +8,10 @@ use std::sync::{Arc, Mutex, mpsc};
 type Key = (u64, u64);
 #[derive(Default)]
 struct State {
+    #[cfg(not(target_arch = "wasm32"))]
     running: Option<(Key, mpsc::Receiver<Report>)>,
+    #[cfg(target_arch = "wasm32")]
+    pending: Option<(Key, IncrementalReport)>,
     cached: Option<(Key, Arc<Report>)>,
 }
 pub(crate) struct Report {
@@ -16,6 +19,7 @@ pub(crate) struct Report {
     pub words: Vec<(StoryId, Range<usize>)>,
     pub error: Option<String>,
 }
+#[cfg(not(target_arch = "wasm32"))]
 fn build(doc: Arc<Document>) -> Report {
     let mut words = Vec::new();
     for story in doc.stories.values() {
@@ -23,11 +27,48 @@ fn build(doc: Arc<Document>) -> Report {
     }
     Report { doc, words, error: None }
 }
+// The browser has no native worker thread. Keep the scan resumable even inside
+// one long story, and expose only complete results for the current revision.
+#[cfg(any(target_arch = "wasm32", test))]
+struct IncrementalReport {
+    report: Report,
+    story: Option<StoryId>,
+    cursor: designcraft_engine::cmd::spelling::SpellingCursor,
+    last_frame: Option<u64>,
+}
+#[cfg(any(target_arch = "wasm32", test))]
+impl IncrementalReport {
+    fn new(doc: Arc<Document>) -> Self {
+        let story = doc.stories.keys().next().copied();
+        Self { report: Report { doc, words: vec![], error: None }, story, cursor: Default::default(), last_frame: None }
+    }
+    fn advance(&mut self, frame: u64) -> bool {
+        if self.story.is_none() {
+            return true;
+        }
+        // The dialog and canvas can ask in the same frame: spend the budget once.
+        if self.last_frame == Some(frame) {
+            return false;
+        }
+        self.last_frame = Some(frame);
+        if let Some(sid) = self.story {
+            let mut words = Vec::new();
+            let done = self.report.doc.story(sid).is_none_or(|story| self.cursor.advance(&self.report.doc, story, 256, 8, &mut words));
+            self.report.words.extend(words.into_iter().map(|r| (sid, r)));
+            if done {
+                self.story = self.report.doc.stories.range((std::ops::Bound::Excluded(sid), std::ops::Bound::Unbounded)).next().map(|(id, _)| *id);
+                self.cursor = Default::default();
+            }
+        }
+        self.story.is_none()
+    }
+}
 pub(crate) fn report(app: &DesignApp, ctx: &egui::Context) -> Option<Arc<Report>> {
     let active = app.session.active()?;
     let key = (active.uid, active.revision);
     let cell: Arc<Mutex<State>> = ctx.data_mut(|d| d.get_temp_mut_or_default::<Arc<Mutex<State>>>(egui::Id::new("spelling_worker")).clone());
     let mut state = cell.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+    #[cfg(not(target_arch = "wasm32"))]
     if let Some((job_key, rx)) = &state.running {
         match rx.try_recv() {
             Ok(result) => {
@@ -45,6 +86,7 @@ pub(crate) fn report(app: &DesignApp, ctx: &egui::Context) -> Option<Arc<Report>
     {
         return Some(result.clone());
     }
+    #[cfg(not(target_arch = "wasm32"))]
     if state.running.is_none() {
         let doc = active.doc.clone();
         let (tx, rx) = mpsc::channel();
@@ -68,11 +110,21 @@ pub(crate) fn report(app: &DesignApp, ctx: &egui::Context) -> Option<Arc<Report>
                 return Some(result);
             }
         }
-        #[cfg(target_arch = "wasm32")]
-        {
-            let _ = tx.send(build(doc));
-        }
         state.running = Some((key, rx));
+    }
+    #[cfg(target_arch = "wasm32")]
+    {
+        if state.pending.as_ref().is_none_or(|(pending_key, _)| *pending_key != key) {
+            state.pending = Some((key, IncrementalReport::new(active.doc.clone())));
+        }
+        if state.pending.as_mut().is_some_and(|(_, work)| work.advance(ctx.cumulative_frame_nr()))
+            && let Some((finished_key, work)) = state.pending.take()
+        {
+            let result = Arc::new(work.report);
+            state.cached = Some((finished_key, result.clone()));
+            return Some(result);
+        }
+        ctx.request_repaint();
     }
     ctx.request_repaint_after(std::time::Duration::from_millis(100));
     None
@@ -279,6 +331,29 @@ mod tests {
             assert!(start.elapsed().as_secs() < 15, "background spelling timed out");
             std::thread::sleep(std::time::Duration::from_millis(10));
         }
+    }
+    #[test]
+    fn browser_scan_yields_once_per_frame_and_keeps_complete_results() {
+        let mut app = DesignApp::new(SessionForTest::new(), crate::Services::default());
+        app.run("file.new", json!({})).unwrap();
+        app.run("frame.create", json!({"rect":[0,0,300,300],"content":"text","text":"qzxw ".repeat(300)})).unwrap();
+        let doc = app.session.doc().unwrap().doc.clone();
+        let expected = build(doc.clone()).words;
+        let mut work = IncrementalReport::new(doc);
+        assert!(!work.advance(0));
+        let first = work.report.words.len();
+        assert!(first <= 8);
+        assert!(!work.advance(0));
+        assert_eq!(work.report.words.len(), first, "two callers must share the frame budget");
+        let mut finished = false;
+        for frame in 1..1000 {
+            if work.advance(frame) {
+                finished = true;
+                break;
+            }
+        }
+        assert!(finished);
+        assert_eq!(work.report.words, expected);
     }
     #[test]
     fn background_cache_tracks_user_words_and_language_changes() {
