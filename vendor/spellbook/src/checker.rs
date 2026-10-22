@@ -1375,7 +1375,7 @@ impl<'a, S: BuildHasher> Checker<'a, S> {
         if prev_cp_idx == 0 {
             return None;
         }
-        let (_, prev_cp2) = prev_codepoint(word, i)?;
+        let (_, prev_cp2) = prev_codepoint(word, prev_cp_idx)?;
         if prev_cp != prev_cp2 {
             return None;
         }
