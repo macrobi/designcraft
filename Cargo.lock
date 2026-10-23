@@ -1271,6 +1271,7 @@ dependencies = [
  "unicode-bidi",
  "unicode-bidi-mirroring",
  "unicode-segmentation",
+ "web-time",
  "zip",
 ]
 
