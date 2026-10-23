@@ -348,6 +348,8 @@ list) · [roadmap.md](docs/roadmap.md) (milestones, plan) · [parity-checklist.m
 
 Newest first.
 
+- **2026-10-23** · HU2: accelerate web spelling with a browser-safe 2 ms cooperative scan budget, bounded chunks and per-frame work caps; retain exact results, deadline/work-cap regressions and a reproducible timing probe. Integrate the updated CI runner while retaining Hungarian compatibility/generator tests and upstream doctests. No readiness percentage change.
+
 - **2026-10-22** · HU2: apply Hungarian hyphenation limits independently to separator-separated words in both break-point and replacement-letter paths; preserve source offsets, combining marks and explicit soft-hyphen precedence, with direct API regressions. No readiness percentage change.
 
 - **2026-10-22** · HU2: initialize the Hungarian spelling dictionary only for Hungarian text in the requested story scope; preserve independent English checks and Hungarian initialization errors, with regression coverage for empty, unsupported, selected-story and mixed-language cases. No readiness percentage change.
