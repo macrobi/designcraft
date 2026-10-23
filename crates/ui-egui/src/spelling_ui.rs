@@ -43,6 +43,12 @@ impl IncrementalReport {
         Self { report: Report { doc, words: vec![], error: None }, story, cursor: Default::default(), last_frame: None }
     }
     fn advance(&mut self, frame: u64) -> bool {
+        // web_time uses Performance.now() in browsers; std::time::Instant panics
+        // on wasm32-unknown-unknown. A single lookup/initialization is indivisible.
+        let start = web_time::Instant::now();
+        self.advance_until(frame, || start.elapsed() >= std::time::Duration::from_millis(2))
+    }
+    fn advance_until(&mut self, frame: u64, mut expired: impl FnMut() -> bool) -> bool {
         if self.story.is_none() {
             return true;
         }
@@ -53,7 +59,16 @@ impl IncrementalReport {
         self.last_frame = Some(frame);
         if let Some(sid) = self.story {
             let mut words = Vec::new();
-            let done = self.report.doc.story(sid).is_none_or(|story| self.cursor.advance(&self.report.doc, story, 256, 8, &mut words));
+            let mut done = false;
+            // At most 16,384 character/run steps and 1,024 completed words per
+            // frame, even if the clock has low resolution. Check time after each
+            // small chunk so slower devices yield without spending that cap.
+            for _ in 0..128 {
+                done = self.report.doc.story(sid).is_none_or(|story| self.cursor.advance(&self.report.doc, story, 128, 8, &mut words));
+                if done || expired() {
+                    break;
+                }
+            }
             self.report.words.extend(words.into_iter().map(|r| (sid, r)));
             if done {
                 self.story = self.report.doc.stories.range((std::ops::Bound::Excluded(sid), std::ops::Bound::Unbounded)).next().map(|(id, _)| *id);
@@ -336,14 +351,14 @@ mod tests {
     fn browser_scan_yields_once_per_frame_and_keeps_complete_results() {
         let mut app = DesignApp::new(SessionForTest::new(), crate::Services::default());
         app.run("file.new", json!({})).unwrap();
-        app.run("frame.create", json!({"rect":[0,0,300,300],"content":"text","text":"qzxw ".repeat(300)})).unwrap();
+        app.run("frame.create", json!({"rect":[0,0,300,300],"content":"text","text":"qzxw ".repeat(2400)})).unwrap();
         let doc = app.session.doc().unwrap().doc.clone();
         let expected = build(doc.clone()).words;
         let mut work = IncrementalReport::new(doc);
-        assert!(!work.advance(0));
+        assert!(!work.advance_until(0, || false));
         let first = work.report.words.len();
-        assert!(first <= 8);
-        assert!(!work.advance(0));
+        assert_eq!(first, 1024, "fast scans should use the larger per-frame word budget");
+        assert!(!work.advance_until(0, || false));
         assert_eq!(work.report.words.len(), first, "two callers must share the frame budget");
         let mut finished = false;
         for frame in 1..1000 {
@@ -354,6 +369,105 @@ mod tests {
         }
         assert!(finished);
         assert_eq!(work.report.words, expected);
+    }
+    #[test]
+    fn browser_scan_deadline_yields_and_preserves_results() {
+        let mut session = SessionForTest::new();
+        session.execute("file.new", &json!({})).unwrap();
+        let text = "hejesírás árvi\u{301}z qzxw 2026-ban ".repeat(100);
+        let mut doc = (*session.doc().unwrap().doc).clone();
+        let mut story = designcraft_doc::Story::with_text(StoryId(1), &text, Default::default());
+        story.format_chars(0..text.len(), |f| f.over.language = Some("Hungarian".into()));
+        doc.stories.insert(StoryId(1), story.into());
+        let doc = Arc::new(doc);
+        let expected = build(doc.clone()).words;
+        let mut work = IncrementalReport::new(doc);
+        let mut checks = 0;
+        assert!(!work.advance_until(0, || {
+            checks += 1;
+            true
+        }));
+        assert_eq!(checks, 1, "an expired deadline must prevent a second chunk");
+        let first = work.report.words.len();
+        assert!(first > 0 && first <= 8);
+        assert!(!work.advance_until(0, || panic!("same frame must not spend more time")));
+        assert_eq!(work.report.words.len(), first);
+        for frame in 1..1000 {
+            if work.advance_until(frame, || true) {
+                break;
+            }
+        }
+        assert!(work.story.is_none());
+        assert_eq!(work.report.words, expected);
+    }
+    #[test]
+    fn browser_scan_work_cap_bounds_correct_words_and_punctuation() {
+        for text in ["hello ".repeat(5000), ".".repeat(50_000), "a".repeat(50_000)] {
+            let mut session = SessionForTest::new();
+            session.execute("file.new", &json!({})).unwrap();
+            let mut doc = (*session.doc().unwrap().doc).clone();
+            doc.stories.insert(StoryId(1), designcraft_doc::Story::with_text(StoryId(1), &text, Default::default()).into());
+            let doc = Arc::new(doc);
+            let expected = build(doc.clone()).words;
+            let mut work = IncrementalReport::new(doc);
+            let mut chunks = 0;
+            assert!(!work.advance_until(0, || {
+                chunks += 1;
+                false
+            }));
+            assert_eq!(chunks, 128, "work is capped even when the clock does not advance");
+            for frame in 1..100 {
+                if work.advance_until(frame, || false) {
+                    break;
+                }
+            }
+            assert!(work.story.is_none());
+            assert_eq!(work.report.words, expected);
+        }
+    }
+    /// Native timing of the browser's resumable scheduler, not a browser FPS test.
+    #[test]
+    #[ignore = "manual spelling scheduler timing; run with --nocapture"]
+    fn browser_scan_timing() {
+        for (name, language, sample, repeats) in [
+            ("english-50k", "English", "hello world qzxw this is a test. ", 1600),
+            ("hungarian-50k", "Hungarian", "Az asszony könnyen olvas hosszú szöveget. hejesírás 2026-ban. ", 850),
+            ("hungarian-book", "Hungarian", "Az asszony könnyen olvas hosszú szöveget. hejesírás 2026-ban. ", 8500),
+        ] {
+            let mut session = SessionForTest::new();
+            session.execute("file.new", &json!({})).unwrap();
+            let text = sample.repeat(repeats);
+            let mut doc = (*session.doc().unwrap().doc).clone();
+            let mut story = designcraft_doc::Story::with_text(StoryId(1), &text, Default::default());
+            story.format_chars(0..text.len(), |f| f.over.language = Some(language.into()));
+            doc.stories.insert(StoryId(1), story.into());
+            let doc = Arc::new(doc);
+            let mut cold = IncrementalReport::new(doc.clone());
+            let cold_start = std::time::Instant::now();
+            cold.advance(0);
+            let cold_ms = cold_start.elapsed().as_secs_f64() * 1000.0;
+            let expected = build(doc.clone()).words;
+            let mut scan = IncrementalReport::new(doc);
+            let mut times = Vec::new();
+            for frame in 0..100_000 {
+                let start = std::time::Instant::now();
+                let done = scan.advance(frame);
+                times.push(start.elapsed().as_secs_f64() * 1000.0);
+                if done {
+                    break;
+                }
+            }
+            assert!(scan.story.is_none());
+            assert_eq!(scan.report.words, expected);
+            times.sort_by(f64::total_cmp);
+            println!(
+                "SCAN_TIMING {}",
+                json!({"case":name, "characters":text.chars().count(),
+                "words":text.split_whitespace().count(), "frames":times.len(), "first_call_ms":cold_ms,
+                "total_work_ms":times.iter().sum::<f64>(), "p95_frame_ms":times[times.len()*95/100],
+                "max_frame_ms":times.last(), "misspellings":expected.len()})
+            );
+        }
     }
     #[test]
     fn background_cache_tracks_user_words_and_language_changes() {
