@@ -409,6 +409,23 @@ mod tests {
     }
 
     #[test]
+    fn hungarian_size_limit_is_per_word_in_long_input() {
+        let lim = Limits::default();
+        let text = "asszony — ".repeat(160);
+        assert!(text.len() > 1024);
+        let expected: Vec<_> = (0..160).map(|i| i * "asszony — ".chars().count() + 2).collect();
+        assert_eq!(hyphen_points_in(&text, &lim, Lang::Hungarian), expected);
+        let ops = opportunities_in(&text, &lim, Lang::Hungarian);
+        assert_eq!(ops.iter().map(|p| p.at).collect::<Vec<_>>(), expected);
+        assert!(ops.iter().all(|p| &*p.suffix == "z"));
+        let oversized = "á".repeat(600);
+        assert!(hyphen_points_in(&oversized, &lim, Lang::Hungarian).is_empty());
+        let mixed = format!("asszony {oversized} könnyen");
+        assert_eq!(hyphen_points_in(&mixed, &lim, Lang::Hungarian), vec![2, 8 + 600 + 1 + 3]);
+        assert!(hyphen_points_in(&text, &Limits { min_word: 8, ..lim }, Lang::Hungarian).is_empty());
+    }
+
+    #[test]
     fn hungarian_limits_apply_to_each_separator_separated_run() {
         for separator in [" ", "-", "—", "/", "123"] {
             let word = format!("asszony{separator}asszony");
