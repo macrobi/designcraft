@@ -169,9 +169,14 @@ pub fn suggest(dict: &Dictionary, w: &str) -> Vec<String> {
 
 /// Misspelled words of a story: byte ranges (acronyms skipped; the user dictionary counts).
 pub fn misspellings(doc: &designcraft_doc::Document, story: &designcraft_doc::Story, user: &[String]) -> Vec<std::ops::Range<usize>> {
+    misspellings_in_runs(story, user, &language_runs(doc, story))
+}
+
+fn misspellings_in_runs(story: &designcraft_doc::Story, user: &[String], runs: &[(std::ops::Range<usize>, Language)]) -> Vec<std::ops::Range<usize>> {
     let mut out = Vec::new();
     let mut checked = std::collections::HashMap::new();
-    for (range, language) in language_runs(doc, story) {
+    for (range, language) in runs {
+        let language = *language;
         if language == Language::Unsupported {
             continue;
         }
@@ -216,8 +221,17 @@ fn language(name: &str) -> Language {
     }
 }
 
+// Thread-local counters verify real command work, independent of parallel tests.
+#[cfg(test)]
+std::thread_local! {
+    static LANGUAGE_RUN_CALLS: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
+    static SUGGESTION_CALLS: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
+}
+
 /// Merge adjacent formatting runs with the same language, but never join across paragraphs.
 fn language_runs(doc: &designcraft_doc::Document, story: &designcraft_doc::Story) -> Vec<(std::ops::Range<usize>, Language)> {
+    #[cfg(test)]
+    LANGUAGE_RUN_CALLS.with(|calls| calls.set(calls.get() + 1));
     let mut out: Vec<(std::ops::Range<usize>, Language)> = Vec::new();
     for (range, format) in story.runs() {
         let mut start = range.start;
@@ -271,10 +285,17 @@ fn tokens(text: &str, hu: bool) -> Vec<std::ops::Range<usize>> {
 /// Suggestions for one checked range, respecting the text's language and capitalization.
 pub fn suggestions(doc: &designcraft_doc::Document, story: &designcraft_doc::Story, range: std::ops::Range<usize>) -> Vec<String> {
     let Some(word) = story.text.get(range.clone()) else { return vec![] };
-    match language_runs(doc, story).into_iter().find(|(r, _)| r.start <= range.start && r.end >= range.end).map(|(_, l)| l) {
-        Some(Language::Hungarian) => hungarian::suggest(word),
-        Some(Language::English) => suggest(Dictionary::en_us(), &word.to_lowercase()),
-        _ => vec![],
+    let lang = language_runs(doc, story).into_iter().find(|(r, _)| r.start <= range.start && r.end >= range.end).map(|(_, l)| l);
+    suggestions_in_language(lang.unwrap_or(Language::Unsupported), word)
+}
+
+fn suggestions_in_language(language: Language, word: &str) -> Vec<String> {
+    #[cfg(test)]
+    SUGGESTION_CALLS.with(|calls| calls.set(calls.get() + 1));
+    match language {
+        Language::Hungarian => hungarian::suggest(word),
+        Language::English => suggest(Dictionary::en_us(), &word.to_lowercase()),
+        Language::Unsupported => vec![],
     }
 }
 
@@ -286,19 +307,29 @@ fn check(s: &mut Session, p: &Value) -> Result<Value> {
         Some(id) => vec![StoryId(id)],
         None => d.stories.keys().copied().collect(),
     };
-    let has_hungarian = stories
-        .iter()
-        .filter_map(|sid| d.story(*sid))
-        .any(|story| language_runs(d, story).iter().any(|(_, language)| *language == Language::Hungarian));
-    if has_hungarian {
-        hungarian::initialize().map_err(|e| bad("spelling.check", e))?;
-    }
     let mut out = Vec::new();
+    // Borrow exact words from the immutable document; do not mix languages or case.
+    // This cache is local to one command, including when several stories are checked.
+    let mut suggestion_cache = std::collections::HashMap::new();
     for sid in stories {
         let Some(story) = d.story(sid) else { continue };
-        for r in misspellings(d, story, &d.user_words) {
-            let word = &story.text[r.clone()];
-            let sugg = if want_sugg { suggestions(d, story, r.clone()) } else { vec![] };
+        let runs = language_runs(d, story);
+        if runs.iter().any(|(_, language)| *language == Language::Hungarian) {
+            hungarian::initialize().map_err(|e| bad("spelling.check", e))?;
+        }
+        for r in misspellings_in_runs(story, &d.user_words, &runs) {
+            let Some(word) = story.text.get(r.clone()) else { continue };
+            let sugg = if want_sugg {
+                let run = runs.get(runs.partition_point(|(run, _)| run.end <= r.start));
+                match run.filter(|(run, _)| run.start <= r.start && run.end >= r.end).map(|(_, lang)| *lang) {
+                    Some(lang) if lang != Language::Unsupported => {
+                        suggestion_cache.entry((lang, word)).or_insert_with(|| suggestions_in_language(lang, word)).clone()
+                    }
+                    _ => vec![],
+                }
+            } else {
+                vec![]
+            };
             out.push(json!({"story": sid.0, "start": r.start, "end": r.end, "word": word, "suggestions": sugg}));
         }
     }
@@ -404,6 +435,68 @@ mod hungarian_integration_tests {
             .map(|v| v["word"].as_str().unwrap().to_string())
             .collect()
     }
+    #[test]
+    fn suggestions_are_cached_across_occurrences_and_stories() {
+        let text = "hejesírás hejesírás";
+        let (mut s, first) = document(text, "hu");
+        let r = s.execute("frame.create", &json!({"rect":[36,36,500,700],"content":"text","text":text})).unwrap();
+        let second = r["story"].as_u64().unwrap();
+        s.execute("text.select", &json!({"story":second,"anchor":0,"focus":text.len()})).unwrap();
+        s.execute("type.char", &json!({"attrs":{"language":"hu"}})).unwrap();
+        let calls = SUGGESTION_CALLS.get();
+        let runs = LANGUAGE_RUN_CALLS.get();
+        let report = s.execute("spelling.check", &json!({})).unwrap();
+        assert_eq!(SUGGESTION_CALLS.get() - calls, 1, "one lookup per distinct language/word in a command");
+        assert_eq!(LANGUAGE_RUN_CALLS.get() - runs, 2, "resolve each story's languages once");
+        let items = report.as_array().unwrap();
+        assert_eq!(items.len(), 4);
+        for (i, item) in items.iter().enumerate() {
+            assert_eq!(item["story"], json!(if i < 2 { first } else { second }));
+            assert_eq!(item["start"], json!((i % 2) * "hejesírás ".len()));
+            assert_eq!(item["end"], json!((i % 2) * "hejesírás ".len() + "hejesírás".len()));
+            assert_eq!(item["suggestions"], items[0]["suggestions"]);
+            assert!(item["suggestions"].as_array().unwrap().contains(&json!("helyesírás")));
+        }
+        let calls = SUGGESTION_CALLS.get();
+        let disabled = s.execute("spelling.check", &json!({"suggestions":false})).unwrap();
+        assert_eq!(SUGGESTION_CALLS.get(), calls);
+        assert_eq!(disabled.as_array().unwrap().len(), 4);
+        assert!(disabled.as_array().unwrap().iter().all(|item| item["suggestions"] == json!([])));
+        // Cache lifetime is one command, and selected-story scope still applies.
+        s.execute("spelling.check", &json!({"story":first})).unwrap();
+        assert_eq!(SUGGESTION_CALLS.get() - calls, 1);
+    }
+
+    #[test]
+    fn suggestion_cache_preserves_language_case_and_unsupported_runs() {
+        let text = "typograpy typograpy Hejesírás hejesírás qzxw";
+        let (mut s, sid) = document(text, "hu");
+        for (start, end, lang) in [(0, 9, "English: USA"), (text.find("qzxw").unwrap(), text.len(), "German")] {
+            s.execute("text.select", &json!({"story":sid,"anchor":start,"focus":end})).unwrap();
+            s.execute("type.char", &json!({"attrs":{"language":lang}})).unwrap();
+        }
+        let d = &s.doc().unwrap().doc;
+        let story = d.story(StoryId(sid)).unwrap();
+        let ranges = misspellings(d, story, &d.user_words);
+        assert_eq!(ranges.len(), 4);
+        let expected: Vec<_> = ranges.iter().map(|r| suggestions(d, story, r.clone())).collect();
+        assert!(expected[0].contains(&"typography".to_string()));
+        assert!(expected[2].contains(&"Helyesírás".to_string()));
+        assert!(expected[3].contains(&"helyesírás".to_string()));
+        let calls = SUGGESTION_CALLS.get();
+        let runs = LANGUAGE_RUN_CALLS.get();
+        let report = s.execute("spelling.check", &json!({})).unwrap();
+        assert_eq!(SUGGESTION_CALLS.get() - calls, 4, "same spelling in different languages and cases must stay distinct");
+        assert_eq!(LANGUAGE_RUN_CALLS.get() - runs, 1);
+        let items = report.as_array().unwrap();
+        assert_eq!(items.len(), ranges.len());
+        for ((item, range), expected) in items.iter().zip(ranges).zip(expected) {
+            assert_eq!(item["start"], json!(range.start));
+            assert_eq!(item["end"], json!(range.end));
+            assert_eq!(item["suggestions"], json!(expected));
+        }
+    }
+
     #[test]
     fn non_hungarian_checks_do_not_initialize_hungarian() {
         let mut empty = Session::new();
