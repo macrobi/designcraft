@@ -24,9 +24,6 @@ fn dictionary() -> Option<&'static Extended> {
 /// Original character offsets, with an insertion before the hyphen if needed.
 /// Unsupported compatibility-ligature replacements are conservatively left unbroken.
 pub(super) fn opportunities(word: &str, lim: &Limits) -> Vec<Opportunity> {
-    if word.len() > 1024 {
-        return Vec::new();
-    }
     let mut out = Vec::new();
     let mut start = None;
     // Keep combining marks and soft hyphens inside their word so normalization
